@@ -1,0 +1,6 @@
+@MyStoryWithData.Server_HostAddress = http://localhost:5146
+
+GET {{MyStoryWithData.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
