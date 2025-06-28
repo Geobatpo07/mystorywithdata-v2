@@ -1,33 +1,20 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using MyStoryWithData.Server.Data;
+using MyStoryWithData.Server.Middleware;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Logging;
-using MyStoryWithData.Server.Data;
 using MyStoryWithData.Server.Logging;
-using MyStoryWithData.Server.Middleware;
-using MyStoryWithData.Server.Models;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore; // Add this namespace for AddEntityFrameworkStores extension method
-
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 📦 Configuration Entity Framework et SQL Server
+// Ajout du DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 	options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 🔐 Configuration Identity avec confirmation d'email obligatoire
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-{
-	options.SignIn.RequireConfirmedEmail = true;  // L'email doit être confirmé pour se connecter
-	options.User.RequireUniqueEmail = true;       // Les emails doivent être uniques
-})
-.AddEntityFrameworkStores<ApplicationDbContext>()   // Configure les services de store (EF Core)
-.AddDefaultTokenProviders();                        // Ajoute les providers pour générer des tokens de confirmation, réinitialisation, etc.
-
-// 🌐 Ajout des contrôleurs
+// Ajout des contrôleurs
 builder.Services.AddControllers();
 
-// 🧪 Swagger avec support JWT
+// Swagger avec support pour l'auth (optionnel)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -41,6 +28,7 @@ builder.Services.AddSwaggerGen(c =>
 		In = ParameterLocation.Header,
 		Type = SecuritySchemeType.Http,
 		Description = "Saisissez uniquement le token JWT ci-dessous",
+
 		Reference = new OpenApiReference
 		{
 			Id = "Bearer",
@@ -55,18 +43,18 @@ builder.Services.AddSwaggerGen(c =>
 	});
 });
 
-// 📝 Configuration du logging vers fichiers
+// Configure le logger vers un fichier
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+builder.Logging.AddConsole(); // Garde la console si tu veux voir aussi dans la sortie terminal
 builder.Logging.AddFile("Logs/mystorywithdata-{Date}.log");
 
 var app = builder.Build();
 
-// 🌐 Fichiers statiques pour React
+// Fichiers statiques (React)
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// 🧪 Swagger en environnement développement
+// Swagger en mode dev
 if (app.Environment.IsDevelopment())
 {
 	app.UseSwagger();
@@ -75,20 +63,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 🛡 Middleware personnalisé JWT
+// 🔐 Middleware JWT perso
 app.UseMiddleware<JwtMiddleware>();
 
-// 📋 Middleware de journalisation des requêtes HTTP
-app.UseMiddleware<RequestLoggingMiddleware>();
+// Middleware de journalisation des requêtes
+app.UseMiddleware<MyStoryWithData.Server.Middleware.RequestLoggingMiddleware>();
 
-// 🔐 Authentification & Autorisation
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 🚀 Contrôleurs API
+// Map des contrôleurs
 app.MapControllers();
 
-// 🌍 Fallback pour SPA React
+// Fallback pour React
 app.MapFallbackToFile("/index.html");
 
 app.Run();

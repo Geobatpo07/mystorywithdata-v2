@@ -10,6 +10,7 @@ namespace MyStoryWithData.Server.Data
 		{
 		}
 
+		public DbSet<ApplicationUser> ApplicationUsers { get; set; }
 		public DbSet<BlogPost> BlogPosts { get; set; }
 		public DbSet<PowerBIReport> PowerBIReports { get; set; }
 		public DbSet<MLModel> MLModels { get; set; }
