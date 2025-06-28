@@ -1,122 +1,120 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using MyStoryWithData.Server.Models;
-using MyStoryWithData.Server.Models.Auth;
-using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Mvc;
+using MyStoryWithData.Auth.Models;
+using MyStoryWithData.Auth.Services;
 using System.Security.Claims;
-using System.Text;
 
 namespace MyStoryWithData.Server.Controllers
 {
-	[ApiController]
-	[Route("api/[controller]")]
-	public class AuthController : ControllerBase
-	{
-		private readonly UserManager<ApplicationUser> _userManager;
-		private readonly SignInManager<ApplicationUser> _signInManager;
-		private readonly IConfiguration _configuration;
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
+    {
+        private readonly IAuthService _authService;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-		public AuthController(UserManager<ApplicationUser> userManager,
-							  SignInManager<ApplicationUser> signInManager,
-							  IConfiguration configuration)
-		{
-			_userManager = userManager;
-			_signInManager = signInManager;
-			_configuration = configuration;
-		}
+        public AuthController(
+            IAuthService authService,
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager)
+        {
+            _authService = authService;
+            _userManager = userManager;
+            _signInManager = signInManager;
+        }
 
-		// POST: api/auth/register
-		[HttpPost("register")]
-		public async Task<IActionResult> Register([FromBody] RegisterModel model)
-		{
-			if (!ModelState.IsValid) return BadRequest(ModelState);
+        // POST: api/auth/register
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-			var user = new ApplicationUser
-			{
-				UserName = model.Username,
-				FirstName = model.FirstName,
-				LastName = model.LastName,
-				Email = model.Email,
-				EmailConfirmed = true
-			};
+            var response = await _authService.RegisterAsync(model);
 
-			var result = await _userManager.CreateAsync(user, model.Password);
+            if (!response.Success)
+                return BadRequest(new { message = response.Message });
 
-			if (!result.Succeeded)
-				return BadRequest(result.Errors);
+            return Ok(new { message = "Inscription réussie", token = response.Token });
+        }
 
-			// Ajouter le rôle par défaut (User)
-			await _userManager.AddToRoleAsync(user, "User");
+        // POST: api/auth/login
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-			return Ok(new { message = "Inscription réussie." });
-		}
+            var response = await _authService.LoginAsync(model);
 
-		// POST: api/auth/login
-		[HttpPost("login")]
-		public async Task<IActionResult> Login([FromBody] LoginModel model)
-		{
-			if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!response.Success)
+                return Unauthorized(new { message = response.Message });
 
-			ApplicationUser user = model.UsernameOrEmail.Contains("@")
-				? await _userManager.FindByEmailAsync(model.UsernameOrEmail)
-				: await _userManager.FindByNameAsync(model.UsernameOrEmail);
+            return Ok(new { token = response.Token });
+        }
 
-			if (user == null)
-				return Unauthorized(new { message = "Identifiants invalides." });
+        // GET: api/auth/profile
+        [HttpGet("profile")]
+        [Authorize]
+        public async Task<IActionResult> GetProfile()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+                return Unauthorized();
 
-			var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return NotFound("Utilisateur non trouvé");
 
-			if (!result.Succeeded)
-				return Unauthorized(new { message = "Identifiants invalides." });
+            return Ok(new
+            {
+                user.Id,
+                user.UserName,
+                user.Email,
+                user.FirstName,
+                user.LastName
+            });
+        }
 
-			var token = await GenerateJwtToken(user);
+        // POST: api/auth/confirm-email
+        [HttpPost("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest model)
+        {
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null)
+                return BadRequest("Utilisateur introuvable.");
 
-			return Ok(new
-			{
-				token,
-				user = new
-				{
-					user.Id,
-					user.UserName,
-					user.FirstName,
-					user.LastName,
-					user.Email
-				}
-			});
-		}
+            var result = await _userManager.ConfirmEmailAsync(user, model.Token);
+            if (result.Succeeded)
+                return Ok("Email confirmé avec succès.");
+            return BadRequest("Échec de la confirmation.");
+        }
 
-		// Génération du token JWT
-		private async Task<string> GenerateJwtToken(ApplicationUser user)
-		{
-			var claims = new List<Claim>
-			{
-				new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-				new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
-				new Claim("email_confirmed", user.EmailConfirmed.ToString().ToLower()),
-				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-				new Claim(ClaimTypes.Name, user.UserName ?? "")
-			};
+        // POST: api/auth/add-role
+        [HttpPost("add-role")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddToRole([FromBody] AddToRoleRequest model)
+        {
+            var user = await _userManager.FindByNameAsync(model.Username);
+            if (user == null)
+                return NotFound("Utilisateur non trouvé");
 
-			// Ajoute les rôles comme claims
-			var roles = await _userManager.GetRolesAsync(user);
-			claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+            var result = await _userManager.AddToRoleAsync(user, model.Role);
+            if (!result.Succeeded)
+                return BadRequest("Échec de l'ajout au rôle.");
 
-			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
-			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            return Ok("Rôle attribué avec succès.");
+        }
 
-			var expires = DateTime.UtcNow.AddDays(double.Parse(_configuration["Jwt:DurationInDays"] ?? "1"));
-
-			var token = new JwtSecurityToken(
-				issuer: _configuration["Jwt:Issuer"],
-				audience: _configuration["Jwt:Audience"],
-				claims: claims,
-				expires: expires,
-				signingCredentials: creds
-			);
-
-			return new JwtSecurityTokenHandler().WriteToken(token);
-		}
-	}
+        // POST: api/auth/logout
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return Ok(new { message = "Déconnexion réussie." });
+        }
+    }
 }

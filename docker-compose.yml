@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: mystorywithdata_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: MyStoryWithDataDB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - mystorynet
+
+  server:
+    build:
+      context: ./MyStoryWithData.Server
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      USE_DOCKER_DB: "true"
+    ports:
+      - "7203:8080"
+    depends_on:
+      - postgres
+    networks:
+      - mystorynet
+
+  client:
+    build:
+      context: ./mystorywithdata.client 
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+    networks:
+      - mystorynet
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: mystorywithdata_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: lgeobatpo98@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: Astatesoufre1
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - mystorynet
+
+volumes:
+  postgres_data:
+
+networks:
+  mystorynet:
