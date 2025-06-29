@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MyStoryWithData.Auth.Data;
-using MyStoryWithData.Auth.Helpers;
 using MyStoryWithData.Auth.Models;
 using MyStoryWithData.Auth.Services;
 using MyStoryWithData.Server.Logging;
@@ -111,11 +110,11 @@ builder.Logging.AddFile("Logs/mystorywithdata-{Date}.log");
 var app = builder.Build();
 
 // Initialisation des rôles + admin par défaut
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    await IdentitySeeder.SeedRolesAsync(services);
-}
+// using (var scope = app.Services.CreateScope())
+// {
+//     var services = scope.ServiceProvider;
+//     await IdentitySeeder.SeedRolesAsync(services);
+// }
 
 // Fichiers statiques (React)
 app.UseDefaultFiles();

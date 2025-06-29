@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyStoryWithData.Server.Models;
+using MyStoryWithData.Auth.Models;
 
 namespace MyStoryWithData.Server.Data
 {

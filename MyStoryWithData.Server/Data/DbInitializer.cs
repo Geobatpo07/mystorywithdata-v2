@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using MyStoryWithData.Server.Models;
+using MyStoryWithData.Auth.Models;
 
 namespace MyStoryWithData.Server.Data
 {
