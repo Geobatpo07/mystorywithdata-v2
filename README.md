@@ -1,104 +1,117 @@
-
 # MyStoryWithData
 
-**MyStoryWithData** est une application ASP.NET Core modulaire conçue pour présenter un portfolio analytique interactif. Elle inclut des rapports Power BI, des modèles ML, des articles de blog, un système d’authentification sécurisé basé sur Identity + JWT, et un backend prêt pour une interface React.
+**MyStoryWithData** is a modular ASP.NET 8 full-stack application designed to showcase a personal portfolio featuring blog articles, Power BI reports, machine learning models, services, and user feedback.
 
-## 🧱 Architecture
+## 🧱 Project Architecture
 
-Le projet est organisé en 3 projets :
+This project is composed of three main layers:
 
-- **MyStoryWithData.Server** : API principale (ASP.NET Core)
-- **MyStoryWithData.Auth** : Gestion de l'identité (users, rôles, JWT)
-- **MyStoryWithData.Client** *(à venir)* : Interface utilisateur en React/Vite
+- **MyStoryWithData.Client** — Frontend built with React (Vite)
+- **MyStoryWithData.Server** — ASP.NET Core 8 API (Controllers, Middleware, ApplicationDbContext)
+- **MyStoryWithData.Auth** — Identity-based authentication and authorization layer (AuthDbContext, JWT, IdentityServer ready)
 
----
+## 🧑‍💻 Technologies Used
 
-## ⚙️ Fonctionnalités
+- ASP.NET Core 8
+- Entity Framework Core 8 (PostgreSQL)
+- React (Vite)
+- PostgreSQL
+- JWT Authentication
+- Docker (optional)
+- Identity with custom `ApplicationUser`
+- Swagger (with JWT support)
 
-- Authentification avec ASP.NET Identity et JWT
-- Gestion des rôles (`Admin`, etc.) avec création automatique
-- Stockage PostgreSQL
-- Modèles de données pour :
-  - `BlogPost`
-  - `PowerBIReport` (avec catégories)
-  - `MLModel`
-  - `Service`
-  - `Feedback`
-  - `ContactMessage`
-- Swagger configuré (avec support JWT)
-- Logging dans fichiers `Logs/mystorywithdata-{Date}.log`
+## 🔐 Authentication
 
----
+User authentication is managed through ASP.NET Core Identity with JWT-based access. It includes:
 
-## 🐘 Configuration PostgreSQL
+- Registration & Login
+- Email confirmation (ready)
+- Admin seeding and role creation
+- Role-based access control
 
-Deux connexions possibles :
+## 🧠 Features
 
-```json
-"ConnectionStrings": {
-  "PostgresDocker": "Host=postgres;Port=5432;Database=MyStoryWithDataDB;Username=user;Password=pwd",
-  "PostgresLocal": "Host=localhost;Port=5432;Database=MyStoryWithDataDB;Username=user;Password=pwd"
-}
-```
+- 📚 **Blog Section** — Add/edit articles (public or premium)
+- 📊 **Power BI Reports** — Embeddable reports with metadata
+- 🤖 **Machine Learning Models** — Versioned models with metadata
+- 💼 **Services** — Display your offered services
+- ⭐ **Feedback** — Public ratings and comments
+- 📬 **Contact** — Send messages via a form
+- 🔐 **JWT Middleware** — Injects authenticated user info in requests
+- 📝 **Request Logging** — Logs HTTP requests to file
 
-Par défaut, l'application choisit automatiquement :
+## 🛠️ Setup
 
-- `PostgresDocker` si `USE_DOCKER_DB=true` est défini dans les variables d’environnement
-- Sinon, elle utilise `PostgresLocal`
+### Prerequisites
 
----
+- [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download)
+- [PostgreSQL](https://www.postgresql.org/download/)
+- [Node.js](https://nodejs.org/) (for the React client)
 
-## 🚀 Lancer le projet en local
+### Local Database
 
-### 1. Prérequis
+Ensure you have a PostgreSQL database with the following:
 
-- .NET 8 SDK
-- PostgreSQL en local avec une base `MyStoryWithDataDB`
+- Host: `localhost`
+- Database: `MyStoryWithDataDB`
+- User: `user`
+- Password: `pwd`
 
-### 2. Appliquer les migrations (si base vide)
+Or change the credentials in `appsettings.json`.
 
-```bash
-dotnet ef database update --context AuthDbContext --project MyStoryWithData.Auth --startup-project MyStoryWithData.Server
-```
-
-Tu peux aussi ajouter la migration si ce n'est pas encore fait :
-
-```bash
-dotnet ef migrations add InitialCreate --context AuthDbContext --project MyStoryWithData.Auth --startup-project MyStoryWithData.Server
-```
-
-### 3. Lancer l'application
+### Database Migrations
 
 ```bash
-dotnet run --project MyStoryWithData.Server
+# Apply migrations
+dotnet ef database update --context ApplicationDbContext --project MyStoryWithData.Server --startup-project MyStoryWithData.Server
 ```
 
-Accès à Swagger sur `https://localhost:port/swagger`
+### Running the app
+
+```bash
+# Backend
+cd MyStoryWithData.Server
+dotnet run
+
+# Frontend
+cd MyStoryWithData.Client
+npm install
+npm run dev
+```
+
+### Docker (Optional)
+
+You can build the full system with:
+
+```bash
+docker compose build
+docker compose up
+```
+
+Set the environment variable `USE_DOCKER_DB=true` if you want to use the containerized PostgreSQL connection string.
+
+## 📁 Folder Structure
+
+```
+MyStoryWithData-v2/
+├── MyStoryWithData.Auth/        # Identity & Auth logic
+├── MyStoryWithData.Server/      # API + Database + Middleware
+├── MyStoryWithData.Client/      # React frontend
+├── README.md
+```
+
+## ✅ To Do
+
+- [ ] Email confirmation workflow
+- [ ] Role management in frontend
+- [ ] Deployment pipeline (GitHub Actions / Azure)
+- [ ] Tests & CI
+
+## 📜 License
+
+Apache License 2.0
 
 ---
 
-## 🧪 Swagger + JWT
-
-- Tu peux générer un token via le `AuthController`
-- Utilise `Authorize` dans Swagger avec le token JWT obtenu
-
----
-
-## 📁 À venir
-
-- Interface React avec Vite + Tailwind
-- Support de l'abonnement (blog premium)
-- Upload de modèles ML
-- Déploiement sur Azure / Render / Railway
-
----
-
-## 🤝 Contribuer
-
-Ce projet est en développement actif. Tu es libre de proposer des idées, créer des issues ou des PRs.
-
----
-
-## 📜 Licence
-
-MIT © Geovany Batista Polo Laguerre
+Built with ❤️ by Geovany Batista Polo Laguerre | Data Science & Analytics Engineer
