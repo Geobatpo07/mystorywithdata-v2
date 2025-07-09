@@ -1,0 +1,88 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: MyStoryWithDataDB
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --no-restore
+      
+    - name: Test
+      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      
+    - name: Install frontend dependencies
+      run: |
+        cd mystorywithdata.client
+        npm install
+        
+    - name: Build frontend
+      run: |
+        cd mystorywithdata.client
+        npm run build
+        
+    - name: Lint frontend
+      run: |
+        cd mystorywithdata.client
+        npm run lint
+
+  build-docker:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker images
+      run: |
+        docker build -t mystorywithdata-server ./MyStoryWithData.Server
+        docker build -t mystorywithdata-client ./mystorywithdata.client
+        
+    - name: Run Docker Compose
+      run: |
+        docker-compose up -d
+        sleep 30
+        
+    - name: Health check
+      run: |
+        curl -f http://localhost:7203/health || exit 1
+        
+    - name: Stop containers
+      run: docker-compose down

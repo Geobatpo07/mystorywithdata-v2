@@ -1,3 +1,62 @@
+# Build artifacts
+bin/
+obj/
+
+# NuGet packages
+packages/
+*.nupkg
+
+# IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+Logs/
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Test results
+TestResults/
+*.trx
+
+# Runtime files
+*.dll
+*.exe
+*.pdb
+
+# Documentation
+*.md
+README*
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+
 bin/
 obj/
 node_modules/

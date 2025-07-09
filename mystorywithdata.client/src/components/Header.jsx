@@ -1,44 +1,138 @@
-import { Link } from 'react-router-dom';
-import { FaHome, FaUserAlt, FaBlog, FaServicestack, FaEnvelope } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Bars3Icon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { cn } from '../lib/utils';
 
-export default function Header() {
-    return (
-        <nav className="navbar navbar-expand-lg navbar-light bg-light">
-            <div className="container-fluid">
-                <Link className="navbar-brand" to="/">My Story with Data</Link>
-                <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span className="navbar-toggler-icon"></span>
-                </button>
-                <div className="collapse navbar-collapse" id="navbarNav">
-                    <ul className="navbar-nav ms-auto">
-                        <li className="nav-item">
-                            <Link className="nav-link active" aria-current="page" to="/">
-                                <FaHome className="me-2" /> Accueil
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/about">
-                                <FaUserAlt className="me-2" /> À propos
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/blog">
-                                <FaBlog className="me-2" /> Blog
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/services">
-                                <FaServicestack className="me-2" /> Services
-                            </Link>
-                        </li>
-                        <li className="nav-item">
-                            <Link className="nav-link" to="/contact">
-                                <FaEnvelope className="me-2" /> Contact
-                            </Link>
-                        </li>
-                    </ul>
-                </div>
+function Header() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  const navigation = [
+    { name: 'Home', href: '/' },
+    { name: 'About', href: '/about' },
+    { name: 'Blog', href: '/blog' },
+    { name: 'Services', href: '/services' },
+    { name: 'Reports', href: '/reports' },
+    { name: 'Contact', href: '/contact' },
+  ];
+
+  const isActive = (path) => location.pathname === path;
+
+  return (
+    <motion.header 
+      className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm"
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="container-width section-padding">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link 
+            to="/" 
+            className="flex items-center space-x-2 group"
+          >
+            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">MS</span>
             </div>
-        </nav>
-    );
+            <span className="text-xl font-bold gradient-text group-hover:scale-105 transition-transform">
+              MyStoryWithData
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  "relative px-3 py-2 text-sm font-medium transition-colors duration-200",
+                  isActive(item.href)
+                    ? "text-primary-600"
+                    : "text-gray-600 hover:text-primary-600"
+                )}
+              >
+                {item.name}
+                {isActive(item.href) && (
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"
+                    layoutId="activeTab"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+              </Link>
+            ))}
+          </nav>
+
+          {/* User Actions */}
+          <div className="hidden md:flex items-center space-x-4">
+            <button className="p-2 text-gray-600 hover:text-primary-600 transition-colors">
+              <UserCircleIcon className="w-6 h-6" />
+            </button>
+            <button className="btn btn-primary px-4 py-2 text-sm">
+              Get Started
+            </button>
+          </div>
+
+          {/* Mobile menu button */}
+          <button
+            className="md:hidden p-2 text-gray-600 hover:text-primary-600"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <XMarkIcon className="w-6 h-6" />
+            ) : (
+              <Bars3Icon className="w-6 h-6" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Navigation */}
+        <motion.div
+          className={cn(
+            "md:hidden overflow-hidden",
+            isMobileMenuOpen ? "max-h-96" : "max-h-0"
+          )}
+          initial={false}
+          animate={{
+            height: isMobileMenuOpen ? "auto" : 0,
+            opacity: isMobileMenuOpen ? 1 : 0,
+          }}
+          transition={{ duration: 0.3 }}
+        >
+          <nav className="py-4 space-y-2">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  "block px-3 py-2 text-base font-medium transition-colors duration-200 rounded-md",
+                  isActive(item.href)
+                    ? "text-primary-600 bg-primary-50"
+                    : "text-gray-600 hover:text-primary-600 hover:bg-gray-50"
+                )}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {item.name}
+              </Link>
+            ))}
+            <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
+              <button className="flex items-center space-x-2 text-gray-600 hover:text-primary-600">
+                <UserCircleIcon className="w-5 h-5" />
+                <span>Account</span>
+              </button>
+              <button className="btn btn-primary px-4 py-2 text-sm">
+                Get Started
+              </button>
+            </div>
+          </nav>
+        </motion.div>
+      </div>
+    </motion.header>
+  );
 }
+
+export default Header;

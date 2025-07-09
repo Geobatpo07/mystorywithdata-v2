@@ -1,58 +1,186 @@
+version: '3.8'
+
 services:
   postgres:
-    image: postgres:17
+    image: postgres:17-alpine
     container_name: mystorywithdata_postgres
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: MyStoryWithDataDB
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-MyStoryWithDataDB}
+      # Performance tuning
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     ports:
       - "5432:5432"
     networks:
-      - mystorynet
-
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-MyStoryWithDataDB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    
   server:
     build:
-      context: ./MyStoryWithData.Server
+      context: .
+      dockerfile: MyStoryWithData.Server/Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    container_name: mystorywithdata_server
+    restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       USE_DOCKER_DB: "true"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-mystorywithdata0101010101010101}
+      JWT_ISSUER: ${JWT_ISSUER:-MyStoryWithDataAPI}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-MyStoryWithDataClient}
     ports:
       - "7203:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
-      - mystorynet
-
+      - backend
+      - frontend
+    volumes:
+      - app_logs:/app/Logs
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/Logs
+    
   client:
     build:
-      context: ./mystorywithdata.client 
+      context: ./mystorywithdata.client
+      dockerfile: Dockerfile
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    container_name: mystorywithdata_client
+    restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "8080:8080"
     depends_on:
       - server
     networks:
-      - mystorynet
-
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/log/nginx
+      - /var/run
+    
   pgadmin:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:8.10
     container_name: mystorywithdata_pgadmin
-    restart: always
+    restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: lgeobatpo98@gmail.com
-      PGADMIN_DEFAULT_PASSWORD: Astatesoufre1
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@mystorywithdata.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
     ports:
       - "5050:80"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
-      - mystorynet
+      - backend
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    security_opt:
+      - no-new-privileges:true
+    profiles:
+      - dev
+      - admin
+    
+  # Reverse proxy for production
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: mystorywithdata_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - client
+      - server
+    networks:
+      - frontend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    security_opt:
+      - no-new-privileges:true
+    profiles:
+      - production
+    
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: mystorywithdata_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    profiles:
+      - cache
+      - production
 
 volumes:
   postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/postgres
+  pgadmin_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+  nginx_logs:
+    driver: local
 
 networks:
-  mystorynet:
+  backend:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+  frontend:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16

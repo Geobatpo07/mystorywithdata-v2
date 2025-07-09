@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    security_opt: []
+    read_only: false
+    tmpfs: []
+
+  server:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      USE_DOCKER_DB: "true"
+    ports:
+      - "7203:8080"
+    volumes:
+      - .:/src
+      - app_logs:/app/Logs
+    security_opt: []
+    read_only: false
+    tmpfs: []
+
+  client:
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mystorywithdata.client:/app
+    security_opt: []
+    read_only: false
+    tmpfs: []
+
+  pgadmin:
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@mystorywithdata.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    profiles:
+      - dev

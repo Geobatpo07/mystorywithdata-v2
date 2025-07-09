@@ -101,12 +101,36 @@ MyStoryWithData-v2/
 ├── README.md
 ```
 
+## ✅ Recent Enhancements
+
+- [x] **Security Improvements**: Enhanced password policies, account lockout, security headers
+- [x] **API Versioning**: Implemented versioning support for future API changes
+- [x] **Health Checks**: Added comprehensive health monitoring for PostgreSQL
+- [x] **Rate Limiting**: Implemented to prevent abuse and ensure fair usage
+- [x] **Global Exception Handling**: Centralized error handling with proper HTTP status codes
+- [x] **CORS Configuration**: Properly configured for React frontend
+- [x] **Unit Tests**: Added testing framework with xUnit and Moq
+- [x] **CI/CD Pipeline**: GitHub Actions for automated testing and deployment
+- [x] **Input Validation**: Enhanced with DTOs and validation attributes
+- [x] **API Documentation**: Comprehensive API documentation
+- [x] **Code Quality**: Fixed nullable reference warnings and improved null safety
+
+## 🔧 Additional Features
+
+- **Logging**: Structured logging with file output
+- **Docker Support**: Full containerization with PostgreSQL
+- **Swagger Integration**: Interactive API documentation
+- **JWT Security**: Secure token-based authentication
+- **Entity Framework**: Code-first database approach
+
 ## ✅ To Do
 
 - [ ] Email confirmation workflow
 - [ ] Role management in frontend
-- [ ] Deployment pipeline (GitHub Actions / Azure)
-- [ ] Tests & CI
+- [ ] Production deployment (Azure/AWS)
+- [ ] Email service integration
+- [ ] Performance monitoring
+- [ ] Caching implementation
 
 ## 📜 License
 
